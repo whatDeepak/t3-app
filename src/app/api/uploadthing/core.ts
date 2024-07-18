@@ -1,4 +1,5 @@
 import { auth, clerkClient } from "@clerk/nextjs/server"
+import { toast } from "sonner";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
 import { db } from "~/server/db";
@@ -21,11 +22,17 @@ export const ourFileRouter = {
 
             const fullUserData = await clerkClient.users.getUser(user.userId);
 
-            if (fullUserData?.privateMetadata?.["can-upload"] !== true)
-                throw new UploadThingError("User Does Not Have Upload Permissions");
-
+            if (fullUserData?.privateMetadata?.["can-upload"] !== true) {
+                toast.error("Upload Permission not granted!");
+                throw new UploadThingError("User Does Not Have Upload Permissions");     
+            }
+                
             const { success } = await ratelimit.limit(user.userId);
-            if (!success) throw new UploadThingError("Ratelimited");
+            if (!success){
+                toast.error("Ratelimiting the uploads!");
+                throw new UploadThingError("Ratelimited");
+            }
+                
 
             // Whatever is returned here is accessible in onUploadComplete as `metadata`
             return { userId: user.userId };
